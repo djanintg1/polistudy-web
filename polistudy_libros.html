@@ -1,0 +1,808 @@
+<html><head><base href="." />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.min.js"></script>
+<style>
+:root {
+  --primary: #2c3e50;
+  --accent: #e74c3c;
+  --text: #333;
+  --bg: #ecf0f1;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.reader-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.top-bar {
+  background: var(--primary);
+  padding: 15px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.menu-btn {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-size: 24px;
+  padding: 5px;
+  transition: transform 0.3s ease;
+}
+
+.menu-btn:hover {
+  transform: scale(1.1);
+}
+
+.book-title {
+  color: white;
+  margin: 0;
+  font-size: 1.5em;
+}
+
+.settings-btn, .upload-btn {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  margin-left: 10px;
+}
+
+.sidebar {
+  position: fixed;
+  left: -300px;
+  top: 0;
+  width: 300px;
+  height: 100vh;
+  background: white;
+  transition: left 0.3s ease;
+  box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+  z-index: 1000;
+}
+
+.sidebar.active {
+  left: 0;
+}
+
+.sidebar-header {
+  background: var(--primary);
+  color: white;
+  padding: 20px;
+  font-size: 1.2em;
+}
+
+.chapters-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.chapter-item {
+  padding: 15px 20px;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.chapter-item:hover {
+  background: var(--bg);
+  color: var(--accent);
+}
+
+.content {
+  padding: 20px;
+  line-height: 1.6;
+  font-size: 18px;
+}
+
+.controls {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--primary);
+  padding: 10px 20px;
+  border-radius: 25px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+
+.control-btn {
+  background: none;
+  border: none;
+  color: white;
+  padding: 10px 15px;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.control-btn:hover {
+  color: var(--accent);
+}
+
+.pdf-container {
+  width: 100%;
+  height: 800px;
+  overflow-y: auto;
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+#file-input {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .reader-container {
+    padding: 10px;
+  }
+
+  .book-title {
+    font-size: 1.1em;
+  }
+  
+  .controls {
+    width: 95%;
+    padding: 8px 15px;
+  }
+
+  .top-bar {
+    padding: 10px;
+  }
+
+  .sidebar, .tools-container {
+    width: 85%;
+  }
+
+  .tools-container {
+    right: -85%;
+  }
+
+  .sidebar {
+    left: -85%;
+  }
+
+  .pdf-container {
+    padding: 10px;
+    height: calc(100vh - 200px);
+  }
+
+  .control-btn {
+    padding: 8px 12px;
+  }
+
+  .tools-content {
+    padding: 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  .book-title {
+    font-size: 1em;
+  }
+
+  .tools-container, .sidebar {
+    width: 100%;
+  }
+
+  .tools-container {
+    right: -100%;
+  }
+
+  .sidebar {
+    left: -100%;
+  }
+
+  .controls {
+    padding: 5px 10px;
+  }
+
+  .control-btn {
+    padding: 5px 8px;
+  }
+}
+
+/* New styles for tools */
+.tools-container {
+  position: fixed;
+  right: -300px;
+  top: 0;
+  width: 300px;
+  height: 100vh;
+  background: white;
+  transition: right 0.3s ease;
+  box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+  z-index: 1000;
+}
+
+.tools-container.active {
+  right: 0;
+}
+
+.tools-header {
+  background: var(--primary);
+  color: white;
+  padding: 20px;
+  font-size: 1.2em;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.close-tools {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-size: 20px;
+}
+
+.tools-content {
+  padding: 20px;
+  height: calc(100vh - 70px); /* Account for header height */
+  overflow-y: auto;
+}
+
+.notes-list {
+  list-style: none;
+  padding: 0;
+}
+
+.note-item {
+  background: #f8f9fa;
+  padding: 10px;
+  margin-bottom: 10px;
+  border-radius: 5px;
+  position: relative;
+}
+
+.note-actions {
+  position: absolute;
+  right: 5px;
+  top: 5px;
+}
+
+.note-input {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+}
+
+.zoom-controls {
+  margin: 20px 0;
+  text-align: center;
+}
+
+.zoom-btn {
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 5px 15px;
+  border-radius: 5px;
+  margin: 0 5px;
+  cursor: pointer;
+}
+
+.dictionary-link {
+  display: block;
+  text-align: center;
+  margin: 20px 0;
+  color: var(--primary);
+  text-decoration: none;
+}
+
+.dictionary-search {
+  display: flex;
+  gap: 10px;
+  margin: 10px 0;
+}
+
+.dictionary-search input {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+}
+
+.dictionary-search button {
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.text-statistics {
+  background: #f5f5f5;
+  padding: 15px;
+  border-radius: 5px;
+  margin: 15px 0;
+}
+
+.text-statistics p {
+  margin: 5px 0;
+  font-size: 14px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.stat-value {
+  font-weight: bold;
+  color: var(--primary);
+}
+
+.bookmark-section {
+  margin: 15px 0;
+}
+
+.bookmark-list {
+  list-style: none;
+  padding: 0;
+}
+
+.bookmark-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px;
+  background: #f5f5f5;
+  margin: 5px 0;
+  border-radius: 5px;
+}
+
+.remove-bookmark {
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.selected-text {
+  background: yellow;
+}
+</style>
+</head>
+<body>
+
+<div class="reader-container">
+  <div class="top-bar">
+    <button class="menu-btn" id="menuToggle">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="3" y1="12" x2="21" y2="12"></line>
+        <line x1="3" y1="6" x2="21" y2="6"></line>
+        <line x1="3" y1="18" x2="21" y2="18"></line>
+      </svg>
+    </button>
+    <h1 class="book-title">Lector de PDF</h1>
+    <div>
+      <input type="file" id="file-input" accept=".pdf" />
+      <button class="upload-btn" id="uploadBtn">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="17 8 12 3 7 8"></polyline>
+          <line x1="12" y1="3" x2="12" y2="15"></line>
+        </svg>
+      </button>
+      <button class="settings-btn" id="toolsToggle">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      Páginas
+    </div>
+    <ul class="chapters-list" id="pagesList">
+    </ul>
+  </div>
+
+  <div class="content">
+    <div class="pdf-container" id="pdfContainer">
+      <canvas id="pdfViewer"></canvas>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="control-btn" id="firstPage">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M11 17l-5-5 5-5M18 17l-5-5 5-5"/>
+      </svg>
+    </button>
+    <button class="control-btn" id="prevPage">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M15 18l-6-6 6-6"/>
+      </svg>
+    </button>
+    <button class="control-btn" id="nextPage">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M9 18l6-6-6-6"/>
+      </svg>
+    </button>
+    <button class="control-btn" id="lastPage">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M13 17l5-5-5-5M6 17l5-5-5-5"/>
+      </svg>
+    </button>
+  </div>
+</div>
+
+<!-- Add Tools Container -->
+<div class="tools-container" id="toolsContainer">
+  <div class="tools-header">
+    Herramientas
+    <button class="close-tools" id="closeTools">×</button>
+  </div>
+  <div class="tools-content">
+    <h3>Notas</h3>
+    <textarea class="note-input" id="noteInput" placeholder="Escribe una nota..."></textarea>
+    <button class="zoom-btn" id="addNote">Agregar Nota</button>
+    <ul class="notes-list" id="notesList"></ul>
+
+    <h3>Zoom</h3>
+    <div class="zoom-controls">
+      <button class="zoom-btn" id="zoomOut">-</button>
+      <span id="zoomLevel">100%</span>
+      <button class="zoom-btn" id="zoomIn">+</button>
+    </div>
+
+    <h3>Diccionario</h3>
+    <div class="dictionary-search">
+      <input type="text" id="dictionaryInput" placeholder="Buscar palabra...">
+      <button id="searchDictionary">Buscar</button>
+    </div>
+
+    <h3>Estadísticas de Lectura</h3>
+    <div class="text-statistics" id="textStats">
+      <p>Páginas leídas: <span id="pagesRead">0</span>/<span id="totalPages">0</span></p>
+      <p>Progreso: <span id="readingProgress">0%</span></p>
+    </div>
+
+    <h3>Marcadores</h3>
+    <div class="bookmark-section">
+      <button class="zoom-btn" id="addBookmark">Agregar Marcador</button>
+      <ul class="bookmark-list" id="bookmarksList"></ul>
+    </div>
+  </div>
+</div>
+
+<script>
+// Initialize PDF.js
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.worker.min.js';
+
+let pdfDoc = null;
+let pageNum = 1;
+let pageRendering = false;
+let pageNumPending = null;
+let currentScale = 1.0; // Start at 100%
+const canvas = document.getElementById('pdfViewer');
+const ctx = canvas.getContext('2d');
+
+let readingStartTime = null;
+let bookmarks = JSON.parse(localStorage.getItem('pdfBookmarks')) || [];
+
+function renderPage(num) {
+  pageRendering = true;
+  pdfDoc.getPage(num).then(function(page) {
+    // Get container width
+    const container = document.getElementById('pdfContainer');
+    const containerWidth = container.clientWidth - 40; // Account for padding
+    
+    // Get initial viewport at base scale
+    const baseViewport = page.getViewport({scale: 1.0});
+    
+    // Calculate scale to fit width
+    const initialScale = containerWidth / baseViewport.width;
+    
+    // Apply zoom factor
+    const finalScale = initialScale * currentScale;
+    
+    // Get viewport with final scale
+    const viewport = page.getViewport({scale: finalScale});
+    
+    // Set canvas dimensions
+    canvas.height = viewport.height;
+    canvas.width = viewport.width;
+
+    const renderContext = {
+      canvasContext: ctx,
+      viewport: viewport
+    };
+    
+    const renderTask = page.render(renderContext);
+
+    renderTask.promise.then(function() {
+      pageRendering = false;
+      if (pageNumPending !== null) {
+        renderPage(pageNumPending);
+        pageNumPending = null;
+      }
+    });
+  });
+}
+
+function queueRenderPage(num) {
+  if (pageRendering) {
+    pageNumPending = num;
+  } else {
+    renderPage(num);
+  }
+}
+
+document.getElementById('uploadBtn').addEventListener('click', function() {
+  document.getElementById('file-input').click();
+});
+
+document.getElementById('file-input').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (file.type !== 'application/pdf') {
+    alert('Por favor, selecciona un archivo PDF');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const typedarray = new Uint8Array(e.target.result);
+
+    pdfjsLib.getDocument(typedarray).promise.then(function(pdf) {
+      pdfDoc = pdf;
+      document.querySelector('.book-title').textContent = file.name;
+      
+      // Update page list
+      const pagesList = document.getElementById('pagesList');
+      pagesList.innerHTML = '';
+      for(let i = 1; i <= pdf.numPages; i++) {
+        const li = document.createElement('li');
+        li.className = 'chapter-item';
+        li.textContent = `Página ${i}`;
+        li.onclick = function() {
+          pageNum = i;
+          queueRenderPage(pageNum);
+        };
+        pagesList.appendChild(li);
+      }
+      
+      startReadingTimer();
+      renderBookmarks();
+      renderNotes();
+      renderPage(1);
+    });
+  };
+  reader.readAsArrayBuffer(file);
+});
+
+document.getElementById('prevPage').addEventListener('click', function() {
+  if (pdfDoc && pageNum > 1) {
+    pageNum--;
+    queueRenderPage(pageNum);
+  }
+});
+
+document.getElementById('nextPage').addEventListener('click', function() {
+  if (pdfDoc && pageNum < pdfDoc.numPages) {
+    pageNum++;
+    queueRenderPage(pageNum);
+  }
+});
+
+document.getElementById('firstPage').addEventListener('click', function() {
+  if (pdfDoc && pageNum !== 1) {
+    pageNum = 1;
+    queueRenderPage(pageNum);
+  }
+});
+
+document.getElementById('lastPage').addEventListener('click', function() {
+  if (pdfDoc && pageNum !== pdfDoc.numPages) {
+    pageNum = pdfDoc.numPages;
+    queueRenderPage(pageNum);
+  }
+});
+
+document.getElementById('menuToggle').addEventListener('click', function() {
+  document.getElementById('sidebar').classList.toggle('active');
+});
+
+document.getElementById('toolsToggle').addEventListener('click', function() {
+  document.getElementById('toolsContainer').classList.toggle('active');
+});
+
+// Close tools button functionality
+document.getElementById('closeTools').addEventListener('click', function() {
+  document.getElementById('toolsContainer').classList.remove('active');
+});
+
+document.addEventListener('click', function(event) {
+  const sidebar = document.getElementById('sidebar');
+  const menuToggle = document.getElementById('menuToggle');
+  
+  if (!sidebar.contains(event.target) && !menuToggle.contains(event.target) && sidebar.classList.contains('active')) {
+    sidebar.classList.remove('active');
+  }
+});
+
+// Dictionary search functionality
+document.getElementById('searchDictionary').addEventListener('click', function() {
+  const searchWord = document.getElementById('dictionaryInput').value.trim();
+  if (searchWord) {
+    window.open(`https://dle.rae.es/${encodeURIComponent(searchWord)}`, '_blank');
+  }
+});
+
+// Reading time tracker
+function startReadingTimer() {
+  if (!readingStartTime) {
+    readingStartTime = new Date();
+    updateReadingStats();
+  }
+}
+
+function updateReadingStats() {
+  if (readingStartTime && pdfDoc) {
+    // Current page and total pages
+    document.getElementById('pagesRead').textContent = pageNum;
+    document.getElementById('totalPages').textContent = pdfDoc.numPages;
+    
+    // Reading progress percentage
+    const progress = Math.round((pageNum / pdfDoc.numPages) * 100);
+    document.getElementById('readingProgress').textContent = `${progress}%`;
+
+    setTimeout(updateReadingStats, 1000);
+  }
+}
+
+// Notes Functionality
+let notes = JSON.parse(localStorage.getItem('pdfNotes')) || [];
+
+function saveNotes() {
+  localStorage.setItem('pdfNotes', JSON.stringify(notes));
+}
+
+function renderNotes() {
+  const notesList = document.getElementById('notesList');
+  notesList.innerHTML = '';
+  notes.forEach((note, index) => {
+    const li = document.createElement('li');
+    li.className = 'note-item';
+    li.innerHTML = `
+      <p>${note.text}</p>
+      <div class="note-actions">
+        <button onclick="editNote(${index})">✏️</button>
+        <button onclick="deleteNote(${index})">🗑️</button>
+      </div>
+    `;
+    notesList.appendChild(li);
+  });
+}
+
+document.getElementById('addNote').addEventListener('click', function() {
+  const noteInput = document.getElementById('noteInput');
+  if (noteInput.value.trim()) {
+    notes.push({
+      text: noteInput.value.trim(),
+      page: pageNum
+    });
+    noteInput.value = '';
+    saveNotes();
+    renderNotes();
+  }
+});
+
+function deleteNote(index) {
+  notes.splice(index, 1);
+  saveNotes();
+  renderNotes();
+}
+
+function editNote(index) {
+  const newText = prompt('Editar nota:', notes[index].text);
+  if (newText !== null) {
+    notes[index].text = newText;
+    saveNotes();
+    renderNotes();
+  }
+}
+
+// Zoom Functionality
+document.getElementById('zoomIn').addEventListener('click', function() {
+  // Limit zoom to 3.0 (300%)
+  if (currentScale < 3.0) {
+    currentScale += 0.25;
+    document.getElementById('zoomLevel').textContent = `${Math.round(currentScale * 100)}%`;
+    queueRenderPage(pageNum);
+  }
+});
+
+document.getElementById('zoomOut').addEventListener('click', function() {
+  if (currentScale > 0.5) {
+    currentScale -= 0.25;
+    document.getElementById('zoomLevel').textContent = `${Math.round(currentScale * 100)}%`;
+    queueRenderPage(pageNum);
+  }
+});
+
+// Bookmark functionality
+function saveBookmarks() {
+  localStorage.setItem('pdfBookmarks', JSON.stringify(bookmarks));
+}
+
+function renderBookmarks() {
+  const bookmarksList = document.getElementById('bookmarksList');
+  bookmarksList.innerHTML = '';
+  bookmarks.forEach((bookmark, index) => {
+    const li = document.createElement('li');
+    li.className = 'bookmark-item';
+    li.innerHTML = `
+      <span>Página ${bookmark.page}</span>
+      <button class="remove-bookmark" onclick="removeBookmark(${index})">Eliminar</button>
+    `;
+    li.onclick = function() {
+      pageNum = bookmark.page;
+      queueRenderPage(pageNum);
+    };
+    bookmarksList.appendChild(li);
+  });
+}
+
+document.getElementById('addBookmark').addEventListener('click', function() {
+  if (pdfDoc) {
+    const bookmark = {
+      page: pageNum,
+      timestamp: new Date().toISOString()
+    };
+    bookmarks.push(bookmark);
+    saveBookmarks();
+    renderBookmarks();
+  }
+});
+
+function removeBookmark(index) {
+  bookmarks.splice(index, 1);
+  saveBookmarks();
+  renderBookmarks();
+}
+
+// Dictionary Functionality
+document.getElementById('pdfContainer').addEventListener('mouseup', function() {
+  const selectedText = window.getSelection().toString().trim();
+  if (selectedText) {
+    const dictionaryUrl = `https://dle.rae.es/${encodeURIComponent(selectedText)}`;
+    window.open(dictionaryUrl, '_blank');
+  }
+});
+
+// Initial render of notes and bookmarks
+renderNotes();
+renderBookmarks();
+
+// Add window resize handler
+window.addEventListener('resize', function() {
+  if (pdfDoc) {
+    queueRenderPage(pageNum);
+  }
+});
+</script>
+
+</body></html>
